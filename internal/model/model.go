@@ -21,10 +21,10 @@ type Post struct {
 	CreatedAt time.Time `json:"created_at,omitempty"`
 }
 
-type Comment struct {
-	ID        string    `json:"id,omitempty"`
-	PostID    string    `json:"post_id,omitempty"`
-	UserID    string    `json:"user_id,omitempty"`
-	CreatedAt time.Time `json:"created_at,omitempty"`
-	Text      string    `json:"text,omitempty"`
-}
+// type Comment struct {
+// 	ID        string    `json:"id,omitempty"`
+// 	PostID    string    `json:"post_id,omitempty"`
+// 	UserID    string    `json:"user_id,omitempty"`
+// 	CreatedAt time.Time `json:"created_at,omitempty"`
+// 	Text      string    `json:"text,omitempty"`
+// }

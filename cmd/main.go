@@ -1,32 +1,28 @@
 package main
 
 import (
+	"github.com/Rolan335/project/internal/handler"
+	"github.com/Rolan335/project/internal/repo/inmemory"
 	"github.com/gofiber/fiber/v2"
 )
 
 func main() {
 	app := fiber.New()
 	api := app.Group("/api")
-	//Returns blog as {blogID, CreatorID} мб что-то ещё
-	api.Get("/blog/:id")
-	//Creates a new blog reqBody {creatorID, name} returns {blogID}
-	api.Post("/blog")
-	//Deletes blog reqBody {creatorID}
-	api.Delete("/blog")
-	//Returns all posts with blogID as []string{CreatorID, Text, DateTime}
-	api.Get("/blog/:id/posts")
-	//Creates new post for provided blogID. reqBody {creatorID, Title, Text} returns {PostID}
-	api.Post("/blog/:id/posts")
-	//Deletes a post reqBody {CreatorID}
-	api.Delete("/blog/:blog_id/posts/:post_id")
-	//Get comments for provided post returns []model.Comment{}
-	api.Get("/blog/:blog_id/posts/:post_id/comments")
-	//Create comment for provided post reqBody {CreatorID, Text} return {CommentID}
-	api.Post("/blog/:blog_id/posts/:post_id/comments")
-	//Deletes a comment reqBody {CreatorID}
-	api.Delete("/blog/:blog_id/posts/:post_id/comments/:comment_id")
 
-	//PUT по той же логике.
-	
+	repository := inmemory.New()
+
+	h := handler.New(repository)
+
+	api.Get("/blog/:blog_id", h.GetBlog) // blog_id: uuid
+	api.Post("/blog", h.CreateBlog) // reqBody {"user_id": "abc123", "name": "firstBlog"} | res {"blog_id":"aaaaa-aasfsf-43ife-fdfs-fddd"}
+	api.Put("/blog/:blog_id", h.UpdateBlog) // blog_id: uuid | reqBody {"user_id": "abc123", "name": "firstBlog"} res model.Blog
+	api.Delete("/blog/:blog_id", h.DeleteBlog)
+	api.Get("/blog/:blog_id/posts", h.GetPosts)
+	api.Get("/blog/:blog_id/posts/:post_id", h.GetPost)
+	api.Put("/blog/:blog_id/posts/:post_id", h.UpdatePost)
+	api.Post("/blog/:blog_id/posts", h.CreatePost) //reqBody {"title": "first Post", "text": "first post textttt"} | res {"post_id":"aaaaa-aasfsf-43ife-fdfs-fddd"}
+	api.Delete("/blog/:blog_id/posts/:post_id", h.DeletePost)
+
 	app.Listen(":8080")
 }
