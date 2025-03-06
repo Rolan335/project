@@ -1,28 +1,38 @@
 package main
 
 import (
+	"github.com/Rolan335/project/internal/app"
+	"github.com/Rolan335/project/internal/config"
 	"github.com/Rolan335/project/internal/handler"
-	"github.com/Rolan335/project/internal/repo/inmemory"
-	"github.com/gofiber/fiber/v2"
+	"github.com/Rolan335/project/internal/repository/blogprovider"
+	"github.com/Rolan335/project/internal/storage/pgconn"
+	"github.com/Rolan335/project/internal/usecase"
+	"github.com/Rolan335/project/migrations"
 )
 
 func main() {
-	app := fiber.New()
-	api := app.Group("/api")
+	//TODO: перенести в env
+	cfg, err := config.New()
+	if err != nil {
+		panic("main.config: " + err.Error())
+	}
 
-	repository := inmemory.New()
+	if err := migrations.Migrate(cfg.Postgres.ConnStr); err != nil {
+		panic("main.migrations.Migrate: " + err.Error())
+	}
+	conn, err := pgconn.GetConn(cfg.Postgres.ConnStr)
+	if err != nil {
+		panic("main.pgconn.New: " + err.Error())
+	}
+	repository := blogprovider.New(conn)
 
-	h := handler.New(repository)
+	blog := usecase.NewBlogProvider(repository)
 
-	api.Get("/blog/:blog_id", h.GetBlog) // blog_id: uuid
-	api.Post("/blog", h.CreateBlog) // reqBody {"user_id": "abc123", "name": "firstBlog"} | res {"blog_id":"aaaaa-aasfsf-43ife-fdfs-fddd"}
-	api.Put("/blog/:blog_id", h.UpdateBlog) // blog_id: uuid | reqBody {"user_id": "abc123", "name": "firstBlog"} res model.Blog
-	api.Delete("/blog/:blog_id", h.DeleteBlog)
-	api.Get("/blog/:blog_id/posts", h.GetPosts)
-	api.Get("/blog/:blog_id/posts/:post_id", h.GetPost)
-	api.Put("/blog/:blog_id/posts/:post_id", h.UpdatePost)
-	api.Post("/blog/:blog_id/posts", h.CreatePost) //reqBody {"title": "first Post", "text": "first post textttt"} | res {"post_id":"aaaaa-aasfsf-43ife-fdfs-fddd"}
-	api.Delete("/blog/:blog_id/posts/:post_id", h.DeletePost)
+	handle := handler.New(blog)
 
-	app.Listen(":8080")
+	app := app.GetRouter(handle)
+
+	if err := app.Listen(cfg.App.Port); err != nil {
+		panic("main.app.Listen: " + err.Error())
+	}
 }

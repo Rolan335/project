@@ -1,12 +1,10 @@
 package handler
 
 import (
-	"context"
-	"errors"
-	"time"
+	"log"
 
 	"github.com/Rolan335/project/internal/model"
-	"github.com/Rolan335/project/internal/repo"
+	"github.com/Rolan335/project/internal/usecase"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 )
@@ -16,142 +14,189 @@ const (
 	PostIDParam = "post_id"
 )
 
-type Repo interface {
-	GetBlog(ctx context.Context, blogID string) (model.Blog, error)
-	AddBlog(ctx context.Context, blog model.Blog) (string, error)
-	UpdateBlog(ctx context.Context, blog model.Blog) (model.Blog, error)
-	DeleteBlog(ctx context.Context, blogID string) error
-	GetPost(ctx context.Context, postID string) (model.Post, error)
-	GetPosts(ctx context.Context, BlogID string) ([]model.Post, error)
-	AddPost(ctx context.Context, post model.Post) (string, error)
-	UpdatePost(ctx context.Context, post model.Post) (model.Post, error)
-	DeletePost(ctx context.Context, postID string) error
-}
-
 type Handler struct {
-	r Repo
+	usecase usecase.BlogUsecaseInterface
 }
 
-func New(repo Repo) *Handler {
+func New(usecase usecase.BlogUsecaseInterface) *Handler {
 	return &Handler{
-		r: repo,
+		usecase: usecase,
 	}
 }
 
 func (h *Handler) GetBlog(c *fiber.Ctx) error {
-	blog, err := h.r.GetBlog(c.Context(), c.AllParams()[BlogIDParam])
+	blogID, err := uuid.Parse(c.AllParams()[BlogIDParam])
 	if err != nil {
-		if errors.Is(err, repo.ErrNotFound) {
-			return fiber.ErrNotFound
-		}
+		return fiber.ErrBadRequest
+	}
+	blog, err := h.usecase.GetBlog(c.Context(), model.BlogGetReq{BlogID: blogID})
+	if err != nil {
+		log.Println(err)
+		return fiber.ErrInternalServerError
+	}
+	if blog == (model.BlogGetResp{}) {
+		return fiber.ErrNotFound
 	}
 	return c.JSON(blog)
 }
 
 func (h *Handler) CreateBlog(c *fiber.Ctx) error {
-	//TODO: норм валидация
-	var blog model.Blog
+	var blog model.BlogPostReq
 	if err := c.BodyParser(&blog); err != nil {
 		return fiber.ErrBadRequest
 	}
-	//Перенести в service
-	uuid, _ := uuid.NewRandom()
-	blog.ID = uuid.String()
-	blog.CreatedAt = time.Now()
-	id, err := h.r.AddBlog(c.Context(), blog)
+	if err := blog.Validate(); err != nil {
+		log.Println(err)
+		return fiber.ErrBadRequest
+	}
+	id, err := h.usecase.AddBlog(c.Context(), blog)
 	if err != nil {
+		log.Println(err)
 		return fiber.ErrInternalServerError
 	}
-	return c.JSON(fiber.Map{"blog_id": id})
+	return c.JSON(id)
 }
 
 func (h *Handler) UpdateBlog(c *fiber.Ctx) error {
-	var blog model.Blog
+	var blog model.BlogPutReq
+	var err error
+	blog.BlogID, err = uuid.Parse(c.AllParams()[BlogIDParam])
+	if err != nil {
+		return fiber.ErrBadRequest
+	}
 	if err := c.BodyParser(&blog); err != nil {
 		return fiber.ErrBadRequest
 	}
-	blogUpd, err := h.r.UpdateBlog(c.Context(), blog)
+	if err := blog.Validate(); err != nil {
+		return fiber.ErrBadRequest
+	}
+	resp, err := h.usecase.UpdateBlog(c.Context(), blog)
 	if err != nil {
-		if errors.Is(err, repo.ErrNotFound) {
-			return fiber.ErrNotFound
-		}
+		log.Println(err)
 		return fiber.ErrInternalServerError
 	}
-	return c.JSON(blogUpd)
+	return c.JSON(resp)
 }
 
 func (h *Handler) DeleteBlog(c *fiber.Ctx) error {
-	err := h.r.DeleteBlog(c.Context(), c.AllParams()[BlogIDParam])
+	var blog model.BlogDeleteReq
+	var err error
+	blog.BlogID, err = uuid.Parse(c.AllParams()[BlogIDParam])
 	if err != nil {
-		if errors.Is(err, repo.ErrNotFound) {
-			return fiber.ErrNotFound
-		}
+		return fiber.ErrBadRequest
+	}
+	if err := blog.Validate(); err != nil {
+		return fiber.ErrBadRequest
+	}
+	//TODO: Тут будет 500 если not found
+	if err := h.usecase.DeleteBlog(c.Context(), blog); err != nil {
+		log.Println(err)
 		return fiber.ErrInternalServerError
 	}
 	return c.SendStatus(200)
 }
 
+// TODO: Не проверяет валидность blog_id. Т.е. запрос api/blog/левый-uuid/posts/валидный-uuid вернёт пост.
 func (h *Handler) GetPosts(c *fiber.Ctx) error {
-	posts, err := h.r.GetPosts(c.Context(), c.AllParams()[BlogIDParam])
+	blogID, err := uuid.Parse(c.AllParams()[BlogIDParam])
 	if err != nil {
-		if errors.Is(err, repo.ErrNotFound) {
-			return fiber.ErrNotFound
-		}
+		return fiber.ErrBadRequest
+	}
+	posts, err := h.usecase.GetPosts(c.Context(), model.PostsGetReq{BlogID: blogID})
+	if err != nil {
+		log.Println(err)
 		return fiber.ErrInternalServerError
 	}
-
+	if len(posts) == 0 {
+		return fiber.ErrNotFound
+	}
 	return c.JSON(posts)
 }
 
 func (h *Handler) GetPost(c *fiber.Ctx) error {
-	post, err := h.r.GetPost(c.Context(), c.AllParams()[PostIDParam])
+	var req model.PostGetReq
+	var err error
+	req.BlogID, err = uuid.Parse(c.AllParams()[BlogIDParam])
 	if err != nil {
-		if errors.Is(err, repo.ErrNotFound) {
-			return fiber.ErrNotFound
-		}
+		return fiber.ErrBadRequest
+	}
+	req.PostID, err = uuid.Parse(c.AllParams()[PostIDParam])
+	if err != nil {
+		return fiber.ErrBadRequest
+	}
+	post, err := h.usecase.GetPost(c.Context(), req)
+	if err != nil {
+		log.Println(err)
 		return fiber.ErrInternalServerError
 	}
+	if post == (model.PostGetResp{}) {
+		return fiber.ErrNotFound
+	}
+
 	return c.JSON(post)
 }
 
 func (h *Handler) CreatePost(c *fiber.Ctx) error {
-	//TODO: норм валидация
-	var post model.Post
-	if err := c.BodyParser(&post); err != nil {
+	var req model.PostPostReq
+	if err := c.BodyParser(&req); err != nil {
 		return fiber.ErrBadRequest
 	}
-	post.BlogID = c.AllParams()[BlogIDParam]
-	uuid, _ := uuid.NewRandom()
-	post.ID = uuid.String()
-	post.CreatedAt = time.Now()
-	id, err := h.r.AddPost(c.Context(), post)
+	var err error
+	req.BlogID, err = uuid.Parse(c.AllParams()[BlogIDParam])
 	if err != nil {
+		return fiber.ErrBadRequest
+	}
+	resp, err := h.usecase.AddPost(c.Context(), req)
+	if err != nil {
+		log.Println(err)
 		return fiber.ErrInternalServerError
 	}
-	return c.JSON(fiber.Map{"post_id": id})
+	if resp.PostID == uuid.Nil {
+		return fiber.ErrNotFound
+	}
+	return c.JSON(resp)
 }
 
 func (h *Handler) UpdatePost(c *fiber.Ctx) error {
-	var post model.Post
-	if err := c.BodyParser(&post); err != nil {
+	var req model.PostPutReq
+	if err := c.BodyParser(&req); err != nil {
 		return fiber.ErrBadRequest
 	}
-	postUpd, err := h.r.UpdatePost(c.Context(), post)
+	var err error
+	req.BlogID, err = uuid.Parse(c.AllParams()[BlogIDParam])
 	if err != nil {
-		if errors.Is(err, repo.ErrNotFound) {
-			return fiber.ErrNotFound
-		}
+		return fiber.ErrBadRequest
+	}
+	req.PostID, err = uuid.Parse(c.AllParams()[PostIDParam])
+	if err != nil {
+		return fiber.ErrBadRequest
+	}
+	resp, err := h.usecase.UpdatePost(c.Context(), req)
+	if err != nil {
+		log.Println(err)
 		return fiber.ErrInternalServerError
 	}
-	return c.JSON(postUpd)
+	if resp == (model.PostPutResp{}) {
+		return fiber.ErrNotFound
+	}
+	return c.JSON(resp)
 }
 
 func (h *Handler) DeletePost(c *fiber.Ctx) error {
-	err := h.r.DeletePost(c.Context(), c.AllParams()[PostIDParam])
+	var req model.PostDeleteReq
+	var err error
+	req.BlogID, err = uuid.Parse(c.AllParams()[BlogIDParam])
 	if err != nil {
-		if errors.Is(err, repo.ErrNotFound) {
-			return fiber.ErrNotFound
-		}
+		return fiber.ErrBadRequest
+	}
+	req.PostID, err = uuid.Parse(c.AllParams()[PostIDParam])
+	if err != nil {
+		return fiber.ErrBadRequest
+	}
+	//TODO: Тут будет 500 если not found
+	err = h.usecase.DeletePost(c.Context(), req)
+	if err != nil {
+		log.Println(err)
 		return fiber.ErrInternalServerError
 	}
 	return c.SendStatus(200)
