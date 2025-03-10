@@ -2,29 +2,33 @@ package usecase
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/Rolan335/project/internal/model"
-	"github.com/Rolan335/project/internal/model/dto"
 	"github.com/Rolan335/project/internal/repository"
 	"github.com/google/uuid"
+	"github.com/pkg/errors"
+	"go.opentelemetry.io/otel"
 )
 
 type BlogProvider struct {
-	repository repository.BlogRepoInterface
+	repository repository.BlogRepository
 }
 
-func NewBlogProvider(repository repository.BlogRepoInterface) *BlogProvider {
+func NewBlogProvider(repository repository.BlogRepository) *BlogProvider {
 	return &BlogProvider{
 		repository: repository,
 	}
 }
 
 func (b *BlogProvider) GetBlog(ctx context.Context, req model.BlogGetReq) (model.BlogGetResp, error) {
+	tracer := otel.Tracer("project")
+	_, span := tracer.Start(ctx, "GetBlogUsecase")
+	defer span.End()
+
 	blogDB, err := b.repository.GetBlog(ctx, req.BlogID)
 	if err != nil {
-		return model.BlogGetResp{}, fmt.Errorf("usercase.BlogProvider.GetBlog: %w", err)
+		return model.BlogGetResp{}, errors.Wrap(err, "usercase.BlogProvider.GetBlog")
 	}
 	return model.BlogGetResp{
 		BlogID:    blogDB.ID,
@@ -35,7 +39,7 @@ func (b *BlogProvider) GetBlog(ctx context.Context, req model.BlogGetReq) (model
 }
 func (b *BlogProvider) AddBlog(ctx context.Context, req model.BlogPostReq) (model.BlogPostResp, error) {
 	id, _ := uuid.NewRandom()
-	blogDB := dto.DbBlog{
+	blogDB := model.DbBlog{
 		ID:        id,
 		UserID:    req.UserID,
 		Name:      req.Name,
@@ -44,7 +48,7 @@ func (b *BlogProvider) AddBlog(ctx context.Context, req model.BlogPostReq) (mode
 
 	blogid, err := b.repository.AddBlog(ctx, blogDB)
 	if err != nil {
-		return model.BlogPostResp{}, fmt.Errorf("usecase.BlogProvider.AddBlog: %w", err)
+		return model.BlogPostResp{}, errors.Wrap(err, "usercase.BlogProvider.AddBlog")
 	}
 
 	return model.BlogPostResp{BlogID: blogid}, nil
@@ -52,14 +56,14 @@ func (b *BlogProvider) AddBlog(ctx context.Context, req model.BlogPostReq) (mode
 
 func (b *BlogProvider) UpdateBlog(ctx context.Context, req model.BlogPutReq) (model.BlogPutResp, error) {
 	//Обновляет userID, Name
-	blogDB := dto.DbBlog{
+	blogDB := model.DbBlog{
 		ID:     req.BlogID,
 		UserID: req.UserID,
 		Name:   req.Name,
 	}
 	blog, err := b.repository.UpdateBlog(ctx, blogDB)
 	if err != nil {
-		return model.BlogPutResp{}, fmt.Errorf("usecase.BlogProvider.UpdateBlog: %w", err)
+		return model.BlogPutResp{}, errors.Wrap(err, "usercase.BlogProvider.UpdateBlog")
 	}
 
 	return model.BlogPutResp{
@@ -71,14 +75,14 @@ func (b *BlogProvider) UpdateBlog(ctx context.Context, req model.BlogPutReq) (mo
 }
 func (b *BlogProvider) DeleteBlog(ctx context.Context, req model.BlogDeleteReq) error {
 	if err := b.repository.DeleteBlog(ctx, req.BlogID); err != nil {
-		return fmt.Errorf("usecase.BlogProvider.DeleteBlog: %w", err)
+		return errors.Wrap(err, "usercase.BlogProvider.DeleteBlog")
 	}
 	return nil
 }
 func (b *BlogProvider) GetPost(ctx context.Context, req model.PostGetReq) (model.PostGetResp, error) {
 	post, err := b.repository.GetPost(ctx, req.PostID)
 	if err != nil {
-		return model.PostGetResp{}, fmt.Errorf("usecase.BlogProvider.GetPost: %w", err)
+		return model.PostGetResp{}, errors.Wrap(err, "usercase.BlogProvider.GetPost")
 	}
 
 	return model.PostGetResp{
@@ -92,7 +96,7 @@ func (b *BlogProvider) GetPost(ctx context.Context, req model.PostGetReq) (model
 func (b *BlogProvider) GetPosts(ctx context.Context, req model.PostsGetReq) ([]model.PostGetResp, error) {
 	posts, err := b.repository.GetPosts(ctx, req.BlogID)
 	if err != nil {
-		return nil, fmt.Errorf("usecase.BlogProvider.GetPosts: %w", err)
+		return nil, errors.Wrap(err, "usercase.BlogProvider.GetPosts")
 	}
 	resp := make([]model.PostGetResp, 0, len(posts))
 	for i := 0; i < len(posts); i++ {
@@ -107,7 +111,7 @@ func (b *BlogProvider) GetPosts(ctx context.Context, req model.PostsGetReq) ([]m
 	return resp, nil
 }
 func (b *BlogProvider) AddPost(ctx context.Context, req model.PostPostReq) (model.PostPostResp, error) {
-	dbPost := dto.DbPost{
+	dbPost := model.DbPost{
 		BlogID: req.BlogID,
 		Title:  req.Title,
 		Text:   req.Text,
@@ -116,12 +120,12 @@ func (b *BlogProvider) AddPost(ctx context.Context, req model.PostPostReq) (mode
 	dbPost.CreatedAt = time.Now()
 	postID, err := b.repository.AddPost(ctx, dbPost)
 	if err != nil {
-		return model.PostPostResp{}, fmt.Errorf("usecase.BlogProvider.AddPost: %w", err)
+		return model.PostPostResp{}, errors.Wrap(err, "usercase.BlogProvider.AddPost")
 	}
 	return model.PostPostResp{PostID: postID}, nil
 }
 func (b *BlogProvider) UpdatePost(ctx context.Context, req model.PostPutReq) (model.PostPutResp, error) {
-	dbPost := dto.DbPost{
+	dbPost := model.DbPost{
 		ID:     req.PostID,
 		BlogID: req.BlogID,
 		Title:  req.Title,
@@ -129,7 +133,7 @@ func (b *BlogProvider) UpdatePost(ctx context.Context, req model.PostPutReq) (mo
 	}
 	post, err := b.repository.UpdatePost(ctx, dbPost)
 	if err != nil {
-		return model.PostPutResp{}, fmt.Errorf("usecase.BlogProvider.UpdatePost: %w", err)
+		return model.PostPutResp{}, errors.Wrap(err, "usercase.BlogProvider.UpdatePost")
 	}
 	return model.PostPutResp{
 		PostID:    post.ID,
@@ -141,7 +145,7 @@ func (b *BlogProvider) UpdatePost(ctx context.Context, req model.PostPutReq) (mo
 }
 func (b *BlogProvider) DeletePost(ctx context.Context, req model.PostDeleteReq) error {
 	if err := b.repository.DeletePost(ctx, req.PostID, req.BlogID); err != nil {
-		return fmt.Errorf("usecase.BlogProvider.DeletePost: %w", err)
+		return errors.Wrap(err, "usercase.BlogProvider.DeletePost")
 	}
 	return nil
 }

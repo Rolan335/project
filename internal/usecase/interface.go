@@ -6,7 +6,7 @@ import (
 	"github.com/Rolan335/project/internal/model"
 )
 
-type BlogUsecaseInterface interface {
+type BlogUsecase interface {
 	GetBlog(ctx context.Context, req model.BlogGetReq) (model.BlogGetResp, error)
 	AddBlog(ctx context.Context, req model.BlogPostReq) (model.BlogPostResp, error)
 	UpdateBlog(ctx context.Context, req model.BlogPutReq) (model.BlogPutResp, error)
