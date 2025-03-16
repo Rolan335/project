@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 
-	"github.com/Rolan335/project/internal/apperr"
+	"github.com/Rolan335/project/internal/apperror"
 	"github.com/Rolan335/project/internal/model"
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/google/uuid"
@@ -31,7 +31,7 @@ func (r *BlogRepo) GetBlog(ctx context.Context, blogID uuid.UUID) (model.DbBlog,
 	var blog model.DbBlog
 	if err := pgxscan.Get(ctx, r.db, &blog, "SELECT id, users_id, name, created_at FROM blogs WHERE id = $1", blogID); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return model.DbBlog{}, apperr.ErrNotFound
+			return model.DbBlog{}, apperror.ErrNotFound
 		}
 		return model.DbBlog{}, errors.Wrap(err, "blogprovider.BlogRepo.GetBlog")
 	}
@@ -74,7 +74,7 @@ func (r *BlogRepo) UpdateBlog(ctx context.Context, blog model.DbBlog) (model.DbB
 	query := "UPDATE blogs SET users_id = $1, name = $2 WHERE id = $3 RETURNING id, users_id, name, created_at"
 	if err := pgxscan.Get(ctx, r.db, &blogRes, query, blog.UserID, blog.Name, blog.ID); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return model.DbBlog{}, apperr.ErrNotFound
+			return model.DbBlog{}, apperror.ErrNotFound
 		}
 		return model.DbBlog{}, errors.Wrap(err, "blogprovider.BlogRepo.UpdateBlog")
 	}
@@ -92,7 +92,7 @@ func (r *BlogRepo) DeleteBlog(ctx context.Context, blogID uuid.UUID) error {
 		return errors.Wrap(err, "blogprovider.BlogRepo.DeleteBlog")
 	}
 	if cmdTag.RowsAffected() == 0 {
-		return apperr.ErrNotFound
+		return apperror.ErrNotFound
 	}
 	//deleting all posts in deleted blog
 	if _, err := tx.Exec(ctx, "DELETE FROM posts WHERE blog_id = $1", blogID); err != nil {
@@ -108,7 +108,7 @@ func (r *BlogRepo) GetPost(ctx context.Context, postID uuid.UUID) (model.DbPost,
 	var post model.DbPost
 	if err := pgxscan.Get(ctx, r.db, &post, "SELECT id, blogs_id, title, text, created_at FROM posts WHERE id = $1", postID); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return model.DbPost{}, apperr.ErrNotFound
+			return model.DbPost{}, apperror.ErrNotFound
 		}
 		return model.DbPost{}, errors.Wrap(err, "blogprovider.BlogRepo.GetPost")
 	}
@@ -126,7 +126,7 @@ func (r *BlogRepo) GetPosts(ctx context.Context, BlogID uuid.UUID) ([]model.DbPo
 func (r *BlogRepo) AddPost(ctx context.Context, post model.DbPost) (uuid.UUID, error) {
 	if err := r.db.QueryRow(ctx, "SELECT id FROM blogs WHERE id = $1", post.BlogID).Scan(nil); err != nil {
 		if err == pgx.ErrNoRows {
-			return uuid.Nil, apperr.ErrNotFound
+			return uuid.Nil, apperror.ErrNotFound
 		}
 		return uuid.Nil, errors.Wrap(err, "blogprovider.BlogRepo.AddPost")
 	}
@@ -151,7 +151,7 @@ func (r *BlogRepo) UpdatePost(ctx context.Context, post model.DbPost) (model.DbP
 	err := pgxscan.Get(ctx, r.db, &postRes, query, post.Title, post.Text, post.ID, post.BlogID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return model.DbPost{}, apperr.ErrNotFound
+			return model.DbPost{}, apperror.ErrNotFound
 		}
 		return model.DbPost{}, errors.Wrap(err, "blogprovider.BlogRepo.UpdatePost")
 	}
@@ -164,7 +164,7 @@ func (r *BlogRepo) DeletePost(ctx context.Context, postID uuid.UUID, blogID uuid
 		return errors.Wrap(err, "blogprovider.BlogRepo.DeletePost")
 	}
 	if cmdTag.RowsAffected() == 0 {
-		return apperr.ErrNotFound
+		return apperror.ErrNotFound
 	}
 	return nil
 }

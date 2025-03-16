@@ -1,4 +1,4 @@
-package apperr
+package apperror
 
 import "errors"
 

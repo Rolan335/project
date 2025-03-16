@@ -27,7 +27,17 @@ func NewCacheDecorator(ttl time.Duration, size int, repository repository.BlogRe
 	}
 }
 
-func (c *CacheDecorator) GoPollDeletion(ctx context.Context, deleteInterval time.Duration) {
+// Returns cache name and len
+func (c *CacheDecorator) GetBlogLen() (string, int) {
+	return "blogCache", c.blogCache.GetLen()
+}
+
+// Returns cache name and len
+func (c *CacheDecorator) GetPostLen() (string, int) {
+	return "postCache", c.postCache.GetLen()
+}
+
+func (c *CacheDecorator) GoPollDeletion(ctx context.Context, deleteInterval time.Duration, reallocInterval time.Duration) {
 	c.once.Do(func() {
 		go func() {
 			for {
@@ -37,6 +47,10 @@ func (c *CacheDecorator) GoPollDeletion(ctx context.Context, deleteInterval time
 				case <-time.After(deleteInterval):
 					c.blogCache.DeleteExpired()
 					c.postCache.DeleteExpired()
+				//мапа в го не уменьшается по размеру при удалении ключей, чтобы не умереть по памяти, реаллоцируем
+				case <-time.Tick(reallocInterval):
+					c.blogCache.DeleteFull()
+					c.postCache.DeleteFull()
 				}
 			}
 		}()

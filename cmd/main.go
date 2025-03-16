@@ -11,6 +11,7 @@ import (
 	"github.com/Rolan335/project/internal/app"
 	"github.com/Rolan335/project/internal/cache"
 	"github.com/Rolan335/project/internal/handler"
+	"github.com/Rolan335/project/internal/metric"
 	"github.com/Rolan335/project/internal/repository"
 	"github.com/Rolan335/project/internal/storage/pgconn"
 	"github.com/Rolan335/project/internal/tracer"
@@ -47,20 +48,33 @@ func main() {
 	blogRepo := repository.NewBlogRepo(conn)
 
 	//TODO: Перенести в конфиг
-	cacheSize := 8
-	deleteInterval := time.Second * 30
+	cacheSize := 100
 	ttl := time.Second * 15
 	cache := cache.NewCacheDecorator(ttl, cacheSize, blogRepo)
-	cache.GoPollDeletion(ctx, deleteInterval)
+	deleteInterval := time.Second * 30
+	realocInterval := time.Minute
+	cache.GoPollDeletion(ctx, deleteInterval, realocInterval)
 
 	blog := usecase.NewBlogProvider(cache)
+
+	metric.MustRegisterMetrics()
+	pollInterval := 10 * time.Second
+	metric.GoCountCacheLen(ctx, pollInterval, cache)
 
 	validate := validator.New()
 	handle := handler.New(blog, validate)
 
-	app := app.GetRouter(handle)
+	apiEndpoint := app.GetRouter(handle)
 
-	if err := app.Listen(cfg.App.Port); err != nil {
+	metricEndpoint := app.GetMetricsRouter()
+
+	go func() {
+		if err := metricEndpoint.Listen(":8081"); err != nil {
+			log.Fatal().Err(err).Msg("")
+		}
+	}()
+
+	if err := apiEndpoint.Listen(cfg.App.Port); err != nil {
 		log.Fatal().Err(err).Msg("")
 	}
 }

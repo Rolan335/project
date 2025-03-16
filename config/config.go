@@ -17,6 +17,7 @@ type Config struct {
 
 type App struct {
 	Port string `mapstructure:"port"`
+	MetricsPort string `mapstructure:"metricsport"`
 }
 
 type Postgres struct {
@@ -28,9 +29,7 @@ var config []byte
 
 func New(configPath string) (*Config, error) {
 	//loading env variables to ovveride
-	if err := godotenv.Load(); err != nil {
-		return nil, errors.Wrap(err, "config.New")
-	}
+	godotenv.Load()
 
 	const configType = "yaml"
 	viper.SetConfigFile(configPath)

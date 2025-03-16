@@ -12,15 +12,22 @@ import (
 
 type BlogCache struct {
 	ttl  time.Duration
+	size int
 	mu   *sync.RWMutex
 	data map[uuid.UUID]CacheBlog
 }
 
 func NewBlogCache(size int, ttl time.Duration) *BlogCache {
 	return &BlogCache{
+		ttl:  ttl,
+		size: size,
 		mu:   &sync.RWMutex{},
 		data: make(map[uuid.UUID]CacheBlog, size), /* prealloc memory */
 	}
+}
+
+func (b *BlogCache) GetLen() int {
+	return len(b.data)
 }
 
 func (b *BlogCache) Get(_ context.Context, uuid uuid.UUID) (model.DbBlog, bool) {
@@ -64,7 +71,14 @@ func (b *BlogCache) DeleteExpired() {
 	}
 }
 
+func (b *BlogCache) DeleteFull() {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.data = make(map[uuid.UUID]CacheBlog, b.size)
+}
+
 type PostCache struct {
+	size int
 	ttl  time.Duration
 	mu   *sync.RWMutex
 	data map[uuid.UUID]CachePost
@@ -72,9 +86,15 @@ type PostCache struct {
 
 func NewPostCache(size int, ttl time.Duration) *PostCache {
 	return &PostCache{
+		size: size,
+		ttl:  ttl,
 		mu:   &sync.RWMutex{},
 		data: make(map[uuid.UUID]CachePost, size), /* prealloc memory */
 	}
+}
+
+func (b *PostCache) GetLen() int {
+	return len(b.data)
 }
 
 func (b *PostCache) Get(_ context.Context, uuid uuid.UUID) (model.DbPost, bool) {
@@ -116,4 +136,10 @@ func (b *PostCache) DeleteExpired() {
 			delete(b.data, k)
 		}
 	}
+}
+
+func (b *PostCache) DeleteFull() {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.data = make(map[uuid.UUID]CachePost, b.size)
 }

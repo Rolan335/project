@@ -3,7 +3,7 @@ package handler
 import (
 	"errors"
 
-	"github.com/Rolan335/project/internal/apperr"
+	"github.com/Rolan335/project/internal/apperror"
 	"github.com/Rolan335/project/internal/model"
 	"github.com/Rolan335/project/internal/usecase"
 	"github.com/go-playground/validator/v10"
@@ -42,7 +42,7 @@ func (h *Handler) GetBlog(c *fiber.Ctx) error {
 	}
 	blog, err := h.usecase.GetBlog(ctx, model.BlogGetReq{BlogID: blogID})
 	if err != nil {
-		if errors.Is(err, apperr.ErrNotFound) {
+		if errors.Is(err, apperror.ErrNotFound) {
 			return fiber.ErrNotFound
 		}
 		log.Err(err).Msg("")
@@ -84,7 +84,7 @@ func (h *Handler) UpdateBlog(c *fiber.Ctx) error {
 	}
 	resp, err := h.usecase.UpdateBlog(c.Context(), blog)
 	if err != nil {
-		if errors.Is(err, apperr.ErrNotFound) {
+		if errors.Is(err, apperror.ErrNotFound) {
 			return fiber.ErrNotFound
 		}
 		log.Err(err).Msg("")
@@ -101,7 +101,7 @@ func (h *Handler) DeleteBlog(c *fiber.Ctx) error {
 		return fiber.ErrBadRequest
 	}
 	if err := h.usecase.DeleteBlog(c.Context(), blog); err != nil {
-		if errors.Is(err, apperr.ErrNotFound) {
+		if errors.Is(err, apperror.ErrNotFound) {
 			return fiber.ErrNotFound
 		}
 		log.Err(err).Msg("")
@@ -140,7 +140,7 @@ func (h *Handler) GetPost(c *fiber.Ctx) error {
 	}
 	post, err := h.usecase.GetPost(c.Context(), req)
 	if err != nil {
-		if errors.Is(err, apperr.ErrNotFound) {
+		if errors.Is(err, apperror.ErrNotFound) {
 			return fiber.ErrNotFound
 		}
 		log.Err(err).Msg("")
@@ -166,7 +166,7 @@ func (h *Handler) CreatePost(c *fiber.Ctx) error {
 	}
 	resp, err := h.usecase.AddPost(c.Context(), req)
 	if err != nil {
-		if errors.Is(err, apperr.ErrNotFound) {
+		if errors.Is(err, apperror.ErrNotFound) {
 			return fiber.ErrNotFound
 		}
 		log.Err(err).Msg("")
@@ -195,7 +195,7 @@ func (h *Handler) UpdatePost(c *fiber.Ctx) error {
 	}
 	resp, err := h.usecase.UpdatePost(c.Context(), req)
 	if err != nil {
-		if errors.Is(err, apperr.ErrNotFound) {
+		if errors.Is(err, apperror.ErrNotFound) {
 			return fiber.ErrNotFound
 		}
 		log.Err(err).Msg("")
@@ -216,7 +216,7 @@ func (h *Handler) DeletePost(c *fiber.Ctx) error {
 		return fiber.ErrBadRequest
 	}
 	if err = h.usecase.DeletePost(c.Context(), req); err != nil {
-		if errors.Is(err, apperr.ErrNotFound) {
+		if errors.Is(err, apperror.ErrNotFound) {
 			return fiber.ErrNotFound
 		}
 		log.Err(err).Msg("")
