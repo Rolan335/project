@@ -47,10 +47,10 @@ func GoCountCacheLen(ctx context.Context, interval time.Duration, cacheStats Cac
 				return
 			case <-time.After(interval):
 				name, len := cacheStats.GetBlogLen()
-				log.Info().Str("blogcache", name).Int("len", len).Msg("")
+				log.Debug().Str("blogcache", name).Int("len", len).Msg("")
 				CacheSize.WithLabelValues(name).Set(float64(len))
 				name, len = cacheStats.GetPostLen()
-				log.Info().Str("postcache", name).Int("len", len).Msg("")
+				log.Debug().Str("postcache", name).Int("len", len).Msg("")
 				CacheSize.WithLabelValues(name).Set(float64(len))
 			}
 		}

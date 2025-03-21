@@ -19,7 +19,7 @@ import (
 	"github.com/Rolan335/project/migrations"
 )
 
-const configPath = "internal/config/config.yaml"
+const configPath = "config/config.yaml"
 
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())

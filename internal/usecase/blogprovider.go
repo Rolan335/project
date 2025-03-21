@@ -23,7 +23,7 @@ func NewBlogProvider(repository repository.BlogRepository) *BlogProvider {
 
 func (b *BlogProvider) GetBlog(ctx context.Context, req model.BlogGetReq) (model.BlogGetResp, error) {
 	tracer := otel.Tracer("project")
-	_, span := tracer.Start(ctx, "GetBlogUsecase")
+	ctx, span := tracer.Start(ctx, "GetBlogUsecase")
 	defer span.End()
 
 	blogDB, err := b.repository.GetBlog(ctx, req.BlogID)

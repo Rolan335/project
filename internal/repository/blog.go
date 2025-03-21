@@ -25,7 +25,7 @@ func NewBlogRepo(conn *pgxpool.Pool) *BlogRepo {
 
 func (r *BlogRepo) GetBlog(ctx context.Context, blogID uuid.UUID) (model.DbBlog, error) {
 	tracer := otel.Tracer("project")
-	_, span := tracer.Start(ctx, "DB")
+	ctx, span := tracer.Start(ctx, "DB")
 	defer span.End()
 
 	var blog model.DbBlog

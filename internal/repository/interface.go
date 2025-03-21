@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 )
 
+//go:generate mockgen -source=interface.go -destination=../../mocks/blogrepository.go -package=mocks
 type BlogRepository interface {
 	GetBlog(ctx context.Context, blogID uuid.UUID) (model.DbBlog, error)
 	AddBlog(ctx context.Context, blog model.DbBlog) (uuid.UUID, error)

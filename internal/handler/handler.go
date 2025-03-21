@@ -33,7 +33,7 @@ func New(usecase usecase.BlogUsecase, validate *validator.Validate) *Handler {
 func (h *Handler) GetBlog(c *fiber.Ctx) error {
 	ctx := c.UserContext()
 	tracer := otel.Tracer("project")
-	_, span := tracer.Start(ctx, "GetBlog")
+	ctx, span := tracer.Start(ctx, "GetBlog")
 	defer span.End()
 
 	blogID, err := uuid.Parse(c.Params(BlogIDParam))
