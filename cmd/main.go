@@ -43,6 +43,7 @@ func main() {
 	if err != nil {
 		log.Err(err).Msg("")
 	}
+  
 	defer tp.Shutdown(context.Background()) //nolint
 
 	blogRepo := repository.NewBlogRepo(conn)
@@ -71,7 +72,6 @@ func main() {
 	go func() {
 		if err := metricEndpoint.Listen(":8081"); err != nil {
 			log.Panic().Err(err).Msg("")
-		}
 	}()
 
 	if err := apiEndpoint.Listen(cfg.App.Port); err != nil {

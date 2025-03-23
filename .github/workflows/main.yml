@@ -1,0 +1,66 @@
+name: main
+
+on: 
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  setup:
+    name: Setup Environment
+    runs-on: ubuntu-latest
+    outputs:
+      go-version: 1.24
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.24
+
+  golangci-lint:
+    name: Run golangci-lint
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: latest
+          args: --timeout=5m
+          only-new-issues: true
+
+  test:
+    runs-on: ubuntu-latest
+    needs: setup
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: testdb
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U testuser"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Wait for PostgreSQL
+        run: |
+          for i in {1..30}; do
+            pg_isready -h localhost -U testuser -d testdb && exit 0
+            echo "Waiting for PostgreSQL..."
+            sleep 2
+          done
+          exit 1
+
+      - name: Run Tests
+        env:
+          DATABASE_URL: postgres://testuser:testpass@localhost:5432/testdb?sslmode=disable
+        run: go test -v ./...
