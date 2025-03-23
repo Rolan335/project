@@ -55,7 +55,7 @@ func (b *BlogProvider) AddBlog(ctx context.Context, req model.BlogPostReq) (mode
 }
 
 func (b *BlogProvider) UpdateBlog(ctx context.Context, req model.BlogPutReq) (model.BlogPutResp, error) {
-	//Обновляет userID, Name
+	// Обновляет userID, Name
 	blogDB := model.DbBlog{
 		ID:     req.BlogID,
 		UserID: req.UserID,

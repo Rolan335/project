@@ -8,10 +8,10 @@ import (
 
 type CacheBlog struct {
 	Deadline time.Time
-	Db  model.DbBlog
+	Db       model.DbBlog
 }
 
 type CachePost struct {
 	Deadline time.Time
-	Db  model.DbPost
+	Db       model.DbPost
 }

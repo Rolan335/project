@@ -1,3 +1,4 @@
+//nolint:all
 package cache
 
 import (
@@ -229,7 +230,7 @@ func TestCache_GoPollDeletion(t *testing.T) {
 	customTTL := time.Nanosecond
 	cache := NewCacheDecorator(customTTL, defaultSize, repository)
 	addCount := 100
-	//add 100 elements to cache
+	// add 100 elements to cache
 	for range addCount {
 		blog := model.DbBlog{
 			ID:        uuid.New(),
@@ -247,5 +248,5 @@ func TestCache_GoPollDeletion(t *testing.T) {
 	cache.GoPollDeletion(context.Background(), deleteInterval, reallockInterval)
 	time.Sleep(time.Second)
 	_, len = cache.GetBlogLen()
-	a.EqualValues(len, 0)
+	a.EqualValues(0, len)
 }

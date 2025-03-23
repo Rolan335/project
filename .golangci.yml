@@ -21,3 +21,7 @@ linters:
     - nilerr
     - contextcheck
     - whitespace
+
+issues:
+  exclude:
+  - "Error return value of `tx.Rollback` is not checked"
