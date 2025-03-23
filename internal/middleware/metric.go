@@ -8,7 +8,7 @@ import (
 )
 
 func Metric(c *fiber.Ctx) error {
-	//Копируем метод для правильного отображения в метрике
+	// Копируем метод для правильного отображения в метрике
 	method := string([]byte(c.Method()))
 
 	err := c.Next()

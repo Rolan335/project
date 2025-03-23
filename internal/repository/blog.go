@@ -25,7 +25,7 @@ func NewBlogRepo(conn *pgxpool.Pool) *BlogRepo {
 
 func (r *BlogRepo) GetBlog(ctx context.Context, blogID uuid.UUID) (model.DbBlog, error) {
 	tracer := otel.Tracer("project")
-	_, span := tracer.Start(ctx, "DB")
+	ctx, span := tracer.Start(ctx, "DB")
 	defer span.End()
 
 	var blog model.DbBlog
@@ -43,7 +43,7 @@ func (r *BlogRepo) AddBlog(ctx context.Context, blog model.DbBlog) (uuid.UUID, e
 	if err != nil {
 		return uuid.Nil, errors.Wrap(err, "blogprovider.BlogRepo.AddBlog")
 	}
-	//В идеале потом перекинуть это в отдельный метод для реги юзера
+	// В идеале потом перекинуть это в отдельный метод для реги юзера
 	UserID := blog.UserID
 	if _, err := tx.Exec(ctx, "INSERT INTO users(id) values($1) ON CONFLICT (id) DO NOTHING", UserID); err != nil {
 		tx.Rollback(ctx)
@@ -94,8 +94,8 @@ func (r *BlogRepo) DeleteBlog(ctx context.Context, blogID uuid.UUID) error {
 	if cmdTag.RowsAffected() == 0 {
 		return apperror.ErrNotFound
 	}
-	//deleting all posts in deleted blog
-	if _, err := tx.Exec(ctx, "DELETE FROM posts WHERE blog_id = $1", blogID); err != nil {
+	// deleting all posts in deleted blog
+	if _, err := tx.Exec(ctx, "DELETE FROM posts WHERE blogs_id = $1", blogID); err != nil {
 		return errors.Wrap(err, "blogprovider.BlogRepo.DeleteBlog")
 	}
 	if err := tx.Commit(ctx); err != nil {
@@ -115,9 +115,9 @@ func (r *BlogRepo) GetPost(ctx context.Context, postID uuid.UUID) (model.DbPost,
 	return post, nil
 }
 
-func (r *BlogRepo) GetPosts(ctx context.Context, BlogID uuid.UUID) ([]model.DbPost, error) {
+func (r *BlogRepo) GetPosts(ctx context.Context, blogID uuid.UUID) ([]model.DbPost, error) {
 	var posts []model.DbPost
-	if err := pgxscan.Select(ctx, r.db, &posts, "SELECT id, blogs_id, title, text, created_at FROM posts WHERE blogs_id = $1", BlogID); err != nil {
+	if err := pgxscan.Select(ctx, r.db, &posts, "SELECT id, blogs_id, title, text, created_at FROM posts WHERE blogs_id = $1", blogID); err != nil {
 		return nil, errors.Wrap(err, "blogprovider.BlogRepo.GetPosts")
 	}
 	return posts, nil

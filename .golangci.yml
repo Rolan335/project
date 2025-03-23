@@ -1,0 +1,27 @@
+run:
+  timeout: 5m
+
+linters:
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - goimports
+    - bodyclose
+    - copyloopvar
+    - unconvert
+    - gosec
+    - noctx
+    - gocritic
+    - testifylint
+    - goconst
+    - nilerr
+    - contextcheck
+    - whitespace
+
+issues:
+  exclude:
+  - "Error return value of `tx.Rollback` is not checked"

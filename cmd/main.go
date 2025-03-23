@@ -19,7 +19,7 @@ import (
 	"github.com/Rolan335/project/migrations"
 )
 
-const configPath = "internal/config/config.yaml"
+const configPath = "config/config.yaml"
 
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
@@ -27,15 +27,15 @@ func main() {
 
 	cfg, err := config.New(configPath)
 	if err != nil {
-		log.Fatal().Err(err).Msg("")
+		log.Panic().Err(err).Msg("")
 	}
 
 	if err := migrations.Migrate(cfg.Postgres.ConnStr); err != nil {
-		log.Fatal().Err(err).Msg("")
+		log.Panic().Err(err).Msg("")
 	}
 	conn, err := pgconn.GetConn(cfg.Postgres.ConnStr)
 	if err != nil {
-		log.Fatal().Err(err).Msg("")
+		log.Panic().Err(err).Msg("")
 	}
 	defer conn.Close()
 
@@ -43,7 +43,8 @@ func main() {
 	if err != nil {
 		log.Err(err).Msg("")
 	}
-	defer tp.Shutdown(context.Background())
+  
+	defer tp.Shutdown(context.Background()) //nolint
 
 	blogRepo := repository.NewBlogRepo(conn)
 
@@ -70,11 +71,10 @@ func main() {
 
 	go func() {
 		if err := metricEndpoint.Listen(":8081"); err != nil {
-			log.Fatal().Err(err).Msg("")
-		}
+			log.Panic().Err(err).Msg("")
 	}()
 
 	if err := apiEndpoint.Listen(cfg.App.Port); err != nil {
-		log.Fatal().Err(err).Msg("")
+		log.Panic().Err(err).Msg("")
 	}
 }
