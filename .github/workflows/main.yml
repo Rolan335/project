@@ -60,5 +60,5 @@ jobs:
 
       - name: Run Tests
         env:
-          DATABASE_URL: postgres://testuser:testpass@localhost:5432/testdb?sslmode=disable
+          POSTGRES_CONNSTR: postgres://testuser:testpass@localhost:5432/testdb?sslmode=disable
         run: go test -v ./...
