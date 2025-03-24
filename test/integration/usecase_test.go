@@ -11,9 +11,11 @@ import (
 	"github.com/Rolan335/project/internal/repository"
 	"github.com/Rolan335/project/internal/storage/pgconn"
 	"github.com/Rolan335/project/internal/usecase"
+	"github.com/Rolan335/project/migrations"
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/google/uuid"
 	"github.com/joho/godotenv"
+	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -21,7 +23,14 @@ func TestBlogProvider(t *testing.T) {
 	a := assert.New(t)
 	err := godotenv.Load()
 	a.NoError(err)
-	pg, err := pgconn.GetConn(os.Getenv("POSTGRES_CONNSTR"))
+
+	pgConnStr := os.Getenv("POSTGRES_CONNSTR")
+
+	if err := migrations.Migrate(pgConnStr); err != nil {
+		log.Panic().Err(err).Msg("")
+	}
+
+	pg, err := pgconn.GetConn(pgConnStr)
 	a.NoError(err)
 
 	repository := repository.NewBlogRepo(pg)
