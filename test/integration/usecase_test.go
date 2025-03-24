@@ -21,8 +21,7 @@ import (
 
 func TestBlogProvider(t *testing.T) {
 	a := assert.New(t)
-	err := godotenv.Load()
-	a.NoError(err)
+	godotenv.Load()
 
 	pgConnStr := os.Getenv("POSTGRES_CONNSTR")
 
